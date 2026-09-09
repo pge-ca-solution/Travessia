@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · PGE-SP: A Travessia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #152657; --teal: #34738a; --peach: #f9d5bb;
+  --sky-top: #eaf5f9; --sky-bot: #cde8f3;
+  --card: #ffffff; --card-border: #d8e8ef; --text-dim: #5c7690;
+  --radius: 18px; --radius-sm: 12px; --shadow: 0 16px 40px rgba(21,38,87,.10);
+  --eixo: #0e5e7c; --eixo-clara: #e8f1f3;
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; min-height:100%; font-family:"Inter",sans-serif; color:var(--navy); }
+body { background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%); background-attachment:fixed; }
+.app { max-width:640px; margin:0 auto; min-height:100vh; padding:32px 20px 48px; display:flex; flex-direction:column; }
+.screen { display:none; flex:1; flex-direction:column; }
+.screen.active { display:flex; }
+.top-title { font-family:"Playfair Display",serif; font-weight:700; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; text-align:center; margin:0 0 6px; }
+.top-sub { text-align:center; font-style:italic; color:var(--text-dim); font-size:13px; margin:0 0 30px; }
+.voltar-link { align-self:flex-start; font-size:13px; color:var(--text-dim); background:none; border:none; cursor:pointer; padding:0; margin-bottom:16px; }
+.sair-link { position:fixed; top:16px; right:20px; font-size:12.5px; color:var(--text-dim); background:#fff; border:1px solid var(--card-border); padding:6px 14px; border-radius:999px; cursor:pointer; z-index:50; }
+
+/* LOGIN */
+.login-card { background:#fff; border:2px solid var(--card-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:34px 28px; margin:auto; width:100%; max-width:340px; text-align:center; }
+.login-card h1 { font-family:"Playfair Display",serif; font-size:20px; margin:0 0 22px; }
+.field { margin-bottom:14px; text-align:left; }
+.field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+.field input { width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--card-border); font-size:15px; font-family:inherit; outline:none; }
+.field input:focus { border-color:var(--navy); }
+.btn { display:block; width:100%; padding:15px 20px; border-radius:999px; border:none; font-size:15.5px; font-weight:700; font-family:inherit; cursor:pointer; }
+.btn-primary { background:var(--navy); color:#fff; margin-top:6px; }
+.btn-eixo { background:var(--eixo); color:#fff; }
+.erro-msg { color:#a13a3a; font-size:13px; margin-top:12px; min-height:16px; }
+
+/* EIXO / CARTA select */
+.eixo-grid, .carta-grid { display:flex; flex-direction:column; gap:12px; }
+.eixo-btn { display:flex; align-items:center; gap:14px; background:#fff; border:2px solid var(--card-border); border-radius:var(--radius); padding:18px 20px; text-align:left; cursor:pointer; box-shadow:var(--shadow); }
+.eixo-dot { width:38px; height:38px; border-radius:50%; flex-shrink:0; }
+.eixo-btn .nome { font-family:"Playfair Display",serif; font-weight:700; font-size:17px; }
+.eixo-btn .desc { font-size:12.5px; color:var(--text-dim); }
+
+.carta-item { display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid var(--card-border); border-radius:var(--radius-sm); padding:14px 16px; cursor:pointer; }
+.carta-item .num { width:32px; height:32px; border-radius:50%; background:var(--eixo); color:#fff; font-family:"Playfair Display",serif; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.carta-item .titulo { font-weight:600; font-size:14.5px; }
+.carta-item .badge { margin-left:auto; font-size:11.5px; background:var(--eixo-clara); color:var(--eixo); padding:4px 10px; border-radius:999px; font-weight:600; white-space:nowrap; }
+
+.resp-item { display:flex; align-items:center; justify-content:space-between; background:#fff; border:1.5px solid var(--card-border); border-radius:var(--radius-sm); padding:14px 16px; cursor:pointer; margin-bottom:10px; }
+.resp-item .info .relator { font-weight:600; font-size:14.5px; }
+.resp-item .info .data { font-size:12px; color:var(--text-dim); }
+.resp-item .abrir { color:var(--eixo); font-size:13px; font-weight:600; }
+.vazio { text-align:center; color:var(--text-dim); font-size:14px; padding:40px 20px; }
+
+/* ===== TELÃO ===== */
+#screen-telao.active { display:flex; }
+#screen-telao { position:fixed; inset:0; width:100vw; height:100vh; z-index:100; }
+.stage { position:relative; width:100%; height:100%; overflow:hidden; background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 62%, #b9dbe8 100%); }
+.tl-slide { position:absolute; inset:0; display:none; }
+.tl-slide.active { display:block; }
+.tl-topbar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:clamp(16px,3vh,44px) clamp(20px,4vw,72px) 0; z-index:4; }
+.tl-eixo { font-family:"Playfair Display",serif; font-weight:700; font-size:clamp(13px,1.4vw,20px); letter-spacing:2px; text-transform:uppercase; color:var(--eixo); }
+.tl-grupo { background:var(--navy); color:#fff; font-family:"Playfair Display",serif; font-weight:700; font-size:clamp(13px,1.4vw,22px); padding:clamp(8px,1.2vh,14px) clamp(16px,2vw,34px); border-radius:999px; }
+.tl-sea { position:absolute; left:0; right:0; bottom:0; height:11vh; z-index:1; }
+.tl-sea svg { width:100%; height:100%; display:block; }
+.tl-dots { position:absolute; bottom:clamp(16px,4vh,46px); left:50%; transform:translateX(-50%); display:flex; gap:clamp(8px,1vw,14px); z-index:5; }
+.tl-dots span { width:clamp(8px,.7vw,14px); height:clamp(8px,.7vw,14px); border-radius:50%; background:rgba(21,38,87,.18); cursor:pointer; transition:all .2s; }
+.tl-dots span.active { background:var(--eixo); width:clamp(22px,2vw,38px); border-radius:8px; }
+.tl-arrow { position:absolute; top:50%; transform:translateY(-50%); width:clamp(44px,4vw,64px); height:clamp(44px,4vw,64px); border-radius:50%; background:rgba(255,255,255,.8); border:1.5px solid var(--card-border); display:flex; align-items:center; justify-content:center; font-size:clamp(18px,1.8vw,26px); color:var(--navy); z-index:5; cursor:pointer; }
+.tl-arrow.left { left:clamp(14px,2vw,36px); } .tl-arrow.right { right:clamp(14px,2vw,36px); }
+.tl-arrow.hidden { visibility:hidden; }
+.tl-exit { position:absolute; bottom:clamp(16px,4vh,46px); left:clamp(14px,2vw,36px); font-size:clamp(11px,1vw,13px); color:var(--text-dim); background:rgba(255,255,255,.7); border:1px solid var(--card-border); padding:6px 16px; border-radius:999px; cursor:pointer; z-index:6; }
+
+.s1-content { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 8vw; z-index:2; }
+.s1-carta-numero { font-family:"Playfair Display",serif; font-weight:700; font-size:clamp(14px,1.4vw,26px); letter-spacing:4px; text-transform:uppercase; color:var(--eixo); margin-bottom:clamp(8px,1.2vh,18px); }
+.s1-titulo { font-family:"Playfair Display",serif; font-weight:800; font-size:clamp(26px,3.6vw,64px); line-height:1.15; margin-bottom:clamp(10px,1.6vh,22px); }
+.s1-subtitulo { font-style:italic; font-size:clamp(15px,1.5vw,26px); color:var(--text-dim); margin-bottom:clamp(24px,4vh,50px); }
+.s1-situacao-label { font-size:clamp(11px,1vw,18px); letter-spacing:2px; text-transform:uppercase; font-weight:700; color:var(--teal); margin-bottom:clamp(8px,1.2vh,18px); }
+.s1-situacao { background:var(--card); border:2px solid var(--card-border); border-radius:28px; padding:clamp(20px,3vh,40px) clamp(24px,4vw,52px); box-shadow:0 24px 60px rgba(21,38,87,.12); max-width:1280px; }
+.s1-situacao p { font-family:"Playfair Display",serif; font-style:italic; font-weight:600; font-size:clamp(16px,1.7vw,30px); line-height:1.5; }
+.s1-meta { margin-top:clamp(14px,2.4vh,36px); font-size:clamp(12px,1vw,18px); color:var(--text-dim); }
+
+.qs-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:clamp(70px,12vh,170px) clamp(30px,7vw,140px) clamp(60px,11vh,150px); z-index:2; }
+.qs-grid { display:grid; gap:clamp(16px,2.3vw,40px); width:100%; max-width:1720px; height:100%; }
+.q-card { background:var(--card); border:2px solid var(--card-border); border-radius:26px; padding:clamp(18px,2.5vh,36px) clamp(16px,2vw,34px); box-shadow:0 20px 46px rgba(21,38,87,.10); display:flex; flex-direction:column; }
+.q-num { width:clamp(36px,3vw,52px); height:clamp(36px,3vw,52px); border-radius:50%; background:var(--navy); color:var(--peach); font-family:"Playfair Display",serif; font-weight:700; font-size:clamp(16px,1.6vw,26px); display:flex; align-items:center; justify-content:center; margin-bottom:clamp(12px,1.6vh,22px); flex-shrink:0; }
+.q-pergunta { font-size:clamp(12.5px,1.1vw,19px); color:var(--teal); font-weight:600; line-height:1.4; margin-bottom:6px; }
+.q-resposta-wrap { flex:1; display:flex; align-items:center; border-top:1px solid var(--card-border); margin-top:clamp(8px,1.2vh,16px); padding-top:clamp(8px,1.2vh,16px); overflow:hidden; }
+.q-resposta { font-family:"Playfair Display",serif; font-size:clamp(14px,1.4vw,27px); line-height:1.5; }
+
+.feira-wrap { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 8vw; text-align:center; z-index:2; }
+.feira-label { font-size:clamp(12px,1vw,18px); letter-spacing:2px; text-transform:uppercase; font-weight:700; color:var(--teal); margin-bottom:clamp(16px,2.4vh,34px); }
+.feira-projetos { display:flex; gap:clamp(16px,1.8vw,34px); margin-bottom:clamp(24px,3.2vh,46px); flex-wrap:wrap; justify-content:center; }
+.feira-chip { background:var(--eixo-clara); border:2px solid var(--eixo); border-radius:22px; padding:clamp(16px,2vh,28px) clamp(24px,3.2vw,52px); }
+.feira-chip .k { font-size:clamp(10px,.85vw,15px); color:var(--eixo); font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+.feira-chip .v { font-family:"Playfair Display",serif; font-weight:700; font-size:clamp(18px,1.8vw,32px); }
+.feira-justificativa { max-width:1240px; }
+.feira-justificativa .lbl { font-size:clamp(11px,1vw,17px); letter-spacing:2px; text-transform:uppercase; font-weight:700; color:var(--teal); margin-bottom:12px; }
+.feira-justificativa p { font-family:"Playfair Display",serif; font-style:italic; font-size:clamp(15px,1.6vw,28px); line-height:1.55; }
+</style>
+</head>
+<body>
+<div class="app" id="app-wrap">
+
+  <!-- LOGIN -->
+  <div class="screen active" id="screen-login">
+    <p class="top-title">PGE-SP: A Travessia</p>
+    <p class="top-sub">Painel da administração</p>
+    <div class="login-card">
+      <h1>Entrar</h1>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email" autocomplete="username"></div>
+      <div class="field"><label>Senha</label><input type="password" id="login-senha" autocomplete="current-password"></div>
+      <button class="btn btn-primary" id="btn-login">Entrar</button>
+      <div class="erro-msg" id="login-erro"></div>
+    </div>
+  </div>
+
+  <!-- EIXO SELECT -->
+  <div class="screen" id="screen-eixo">
+    <button class="sair-link" id="btn-sair-1">Sair</button>
+    <p class="top-title">Painel da administração</p>
+    <p class="top-sub">Selecione o eixo</p>
+    <div class="eixo-grid" id="eixo-grid"></div>
+  </div>
+
+  <!-- CARTA LIST -->
+  <div class="screen" id="screen-cartas">
+    <button class="sair-link" id="btn-sair-2">Sair</button>
+    <button class="voltar-link" id="btn-voltar-eixo">← Trocar de eixo</button>
+    <p class="top-title" id="cartas-eixo-nome" style="font-size:20px;"></p>
+    <div class="carta-grid" id="carta-grid" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- RESPOSTAS LIST -->
+  <div class="screen" id="screen-respostas">
+    <button class="sair-link" id="btn-sair-3">Sair</button>
+    <button class="voltar-link" id="btn-voltar-cartas">← Voltar para as cartas</button>
+    <p class="top-title" id="respostas-carta-titulo" style="font-size:19px;"></p>
+    <div id="respostas-lista" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- TELÃO -->
+  <div class="screen" id="screen-telao">
+    <div class="stage">
+      <div class="tl-exit" id="tl-exit">← Voltar</div>
+      <div id="tl-slides"></div>
+      <div class="tl-arrow left" id="tl-prev">‹</div>
+      <div class="tl-arrow right" id="tl-next">›</div>
+      <div class="tl-dots" id="tl-dots"></div>
+      <div class="tl-sea">
+        <svg viewBox="0 0 1920 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,60 Q 480,10 960,55 T 1920,50 L1920,120 L0,120 Z" fill="#a9d2e0" opacity="0.7"/>
+          <path d="M0,80 Q 480,40 960,75 T 1920,72 L1920,120 L0,120 Z" fill="#5e8c9d" opacity="0.6"/>
+          <path d="M0,100 Q 480,70 960,95 T 1920,92 L1920,120 L0,120 Z" fill="#0e5e7c"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { EIXOS, CARTAS } from "./dados-cartas.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, query, where, orderBy, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ============================================================
+// CONFIGURAÇÃO DO FIREBASE — mesmo config do index.html
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDGTHs8-N5iv_3-NBblBN126O-wQXi-iaM",
+  authDomain: "pge-travessia.firebaseapp.com",
+  projectId: "pge-travessia",
+  storageBucket: "pge-travessia.firebasestorage.app",
+  messagingSenderId: "676029863142",
+  appId: "1:676029863142:web:a7c6a1d8053b2263769727"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let eixoAtualKey = null;
+let cartaAtualId = null;
+let respostasCache = [];
+let slideAtual = 1;
+let totalSlides = 1;
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function aplicarCorEixo(key) {
+  const eixo = EIXOS[key];
+  document.documentElement.style.setProperty("--eixo", eixo.cor);
+  document.documentElement.style.setProperty("--eixo-clara", eixo.corClara);
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+document.getElementById("btn-login").addEventListener("click", async () => {
+  const email = document.getElementById("login-email").value.trim();
+  const senha = document.getElementById("login-senha").value;
+  const erro = document.getElementById("login-erro");
+  erro.textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, email, senha);
+  } catch (e) {
+    erro.textContent = "E-mail ou senha inválidos.";
+  }
+});
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    montarEixoGrid();
+    showScreen("screen-eixo");
+  } else {
+    showScreen("screen-login");
+  }
+});
+
+[1,2,3].forEach(n => {
+  document.getElementById("btn-sair-" + n).addEventListener("click", () => signOut(auth));
+});
+
+// ============================================================
+// SELEÇÃO DE EIXO
+// ============================================================
+function montarEixoGrid() {
+  const grid = document.getElementById("eixo-grid");
+  grid.innerHTML = Object.entries(EIXOS).map(([key, eixo]) => `
+    <button class="eixo-btn" data-eixo="${key}">
+      <div class="eixo-dot" style="background:${eixo.cor};"></div>
+      <div>
+        <div class="nome" style="color:${eixo.cor};">${eixo.nome}</div>
+        <div class="desc">${eixo.cartas.length} cartas-problema</div>
+      </div>
+    </button>
+  `).join("");
+  grid.querySelectorAll(".eixo-btn").forEach(btn => {
+    btn.addEventListener("click", () => abrirEixo(btn.dataset.eixo));
+  });
+}
+document.getElementById("btn-voltar-eixo").addEventListener("click", () => showScreen("screen-eixo"));
+
+async function abrirEixo(key) {
+  eixoAtualKey = key;
+  aplicarCorEixo(key);
+  const eixo = EIXOS[key];
+  document.getElementById("cartas-eixo-nome").textContent = eixo.nome;
+  document.getElementById("cartas-eixo-nome").style.color = eixo.cor;
+
+  const grid = document.getElementById("carta-grid");
+  grid.innerHTML = eixo.cartas.map(id => `
+    <div class="carta-item" data-carta="${id}">
+      <div class="num">${id}</div>
+      <div class="titulo">${CARTAS[id].titulo}</div>
+      <div class="badge" id="badge-${id}">carregando…</div>
+    </div>
+  `).join("");
+  grid.querySelectorAll(".carta-item").forEach(item => {
+    item.addEventListener("click", () => abrirCarta(Number(item.dataset.carta)));
+  });
+  showScreen("screen-cartas");
+
+  // busca contagem de respostas por carta (em paralelo)
+  eixo.cartas.forEach(async (id) => {
+    try {
+      const q = query(collection(db, "respostas"), where("cartaId", "==", id));
+      const snap = await getDocs(q);
+      const badge = document.getElementById("badge-" + id);
+      if (badge) badge.textContent = snap.size === 0 ? "sem respostas" : (snap.size + (snap.size === 1 ? " resposta" : " respostas"));
+    } catch (e) {
+      const badge = document.getElementById("badge-" + id);
+      if (badge) badge.textContent = "erro";
+    }
+  });
+}
+
+// ============================================================
+// LISTA DE RESPOSTAS DE UMA CARTA
+// ============================================================
+document.getElementById("btn-voltar-cartas").addEventListener("click", () => showScreen("screen-cartas"));
+
+async function abrirCarta(id) {
+  cartaAtualId = id;
+  const c = CARTAS[id];
+  document.getElementById("respostas-carta-titulo").textContent = `Carta ${String(id).padStart(2,"0")} — ${c.titulo}`;
+  document.getElementById("respostas-carta-titulo").style.color = EIXOS[c.eixo].cor;
+
+  const lista = document.getElementById("respostas-lista");
+  lista.innerHTML = `<div class="vazio">Carregando respostas…</div>`;
+  showScreen("screen-respostas");
+
+  try {
+    const q = query(collection(db, "respostas"), where("cartaId", "==", id), orderBy("criadoEm", "desc"));
+    const snap = await getDocs(q);
+    respostasCache = [];
+    snap.forEach(doc => respostasCache.push({ id: doc.id, ...doc.data() }));
+
+    if (respostasCache.length === 0) {
+      lista.innerHTML = `<div class="vazio">Nenhuma resposta registrada ainda para esta carta.</div>`;
+      return;
+    }
+    lista.innerHTML = respostasCache.map((r, i) => `
+      <div class="resp-item" data-idx="${i}">
+        <div class="info">
+          <div class="relator">${r.relator || "(sem nome)"}</div>
+          <div class="data">${r.criadoEm && r.criadoEm.toDate ? r.criadoEm.toDate().toLocaleString("pt-BR") : "data indisponível"}</div>
+        </div>
+        <div class="abrir">Apresentar →</div>
+      </div>
+    `).join("");
+    lista.querySelectorAll(".resp-item").forEach(item => {
+      item.addEventListener("click", () => abrirTelao(respostasCache[Number(item.dataset.idx)]));
+    });
+  } catch (e) {
+    lista.innerHTML = `<div class="vazio">Erro ao carregar respostas: ${e.message}</div>`;
+  }
+}
+
+// ============================================================
+// TELÃO — genérico, se adapta ao número de perguntas da carta
+// ============================================================
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function abrirTelao(resposta) {
+  const eixo = EIXOS[resposta.eixo];
+  aplicarCorEixo(resposta.eixo);
+  const grupos = chunk(resposta.respostas.map((r, i) => ({ pergunta: resposta.perguntas[i], resposta: r })), 3);
+
+  const slidesHtml = [];
+
+  // slide 1: abertura
+  slidesHtml.push(`
+    <div class="tl-slide active" data-slide="1">
+      <div class="tl-topbar"><div class="tl-eixo">Eixo ${eixo.nome}</div><div class="tl-grupo">${esc(resposta.relator || "—")}</div></div>
+      <div class="s1-content">
+        <div class="s1-carta-numero">Carta ${String(resposta.cartaId).padStart(2,"0")}</div>
+        <h1 class="s1-titulo">${esc(resposta.cartaTitulo)}</h1>
+        <p class="s1-subtitulo">${esc(CARTAS[resposta.cartaId].subtitulo)}</p>
+        <div class="s1-situacao-label">Situação concreta identificada</div>
+        <div class="s1-situacao"><p>${esc(resposta.situacao)}</p></div>
+      </div>
+    </div>
+  `);
+
+  // slides de perguntas
+  grupos.forEach((grupo, gi) => {
+    const cols = grupo.length;
+    slidesHtml.push(`
+      <div class="tl-slide" data-slide="${gi + 2}">
+        <div class="tl-topbar"><div class="tl-eixo">Carta ${String(resposta.cartaId).padStart(2,"0")} · ${esc(resposta.cartaTitulo)}</div><div class="tl-grupo">${esc(resposta.relator || "—")}</div></div>
+        <div class="qs-wrap">
+          <div class="qs-grid" style="grid-template-columns:repeat(${cols},1fr);">
+            ${grupo.map((item, i) => `
+              <div class="q-card">
+                <div class="q-num">${gi * 3 + i + 1}</div>
+                <div class="q-pergunta">${esc(item.pergunta)}</div>
+                <div class="q-resposta-wrap"><div class="q-resposta">${esc(item.resposta) || '<span style="color:var(--text-dim);font-style:italic;">Não preenchido</span>'}</div></div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  // slide final: feira
+  const feiraSlideN = grupos.length + 2;
+  slidesHtml.push(`
+    <div class="tl-slide" data-slide="${feiraSlideN}">
+      <div class="tl-topbar"><div class="tl-eixo">Carta ${String(resposta.cartaId).padStart(2,"0")} · Pontes na Feira de Projetos</div><div class="tl-grupo">${esc(resposta.relator || "—")}</div></div>
+      <div class="feira-wrap">
+        <div class="feira-label">Projetos conectados pelo grupo</div>
+        <div class="feira-projetos">
+          <div class="feira-chip"><div class="k">Projeto 1</div><div class="v">${esc(resposta.projeto1)}</div></div>
+          <div class="feira-chip"><div class="k">Projeto 2</div><div class="v">${esc(resposta.projeto2)}</div></div>
+        </div>
+        <div class="feira-justificativa"><div class="lbl">Justificativa</div><p>${esc(resposta.justificativa)}</p></div>
+      </div>
+    </div>
+  `);
+
+  document.getElementById("tl-slides").innerHTML = slidesHtml.join("");
+  totalSlides = grupos.length + 2;
+  document.getElementById("tl-dots").innerHTML = Array.from({length: totalSlides}, (_, i) =>
+    `<span data-goto="${i+1}"></span>`).join("");
+  document.querySelectorAll("#tl-dots span").forEach(dot => {
+    dot.addEventListener("click", () => irParaSlide(Number(dot.dataset.goto)));
+  });
+
+  showScreen("screen-telao");
+  irParaSlide(1);
+}
+
+function esc(str) { return (str || "").toString().replace(/</g, "&lt;"); }
+
+function irParaSlide(n) {
+  slideAtual = Math.max(1, Math.min(totalSlides, n));
+  document.querySelectorAll(".tl-slide").forEach(s => s.classList.toggle("active", Number(s.dataset.slide) === slideAtual));
+  document.querySelectorAll("#tl-dots span").forEach(d => d.classList.toggle("active", Number(d.dataset.goto) === slideAtual));
+  document.getElementById("tl-prev").classList.toggle("hidden", slideAtual === 1);
+  document.getElementById("tl-next").classList.toggle("hidden", slideAtual === totalSlides);
+}
+document.getElementById("tl-prev").addEventListener("click", () => irParaSlide(slideAtual - 1));
+document.getElementById("tl-next").addEventListener("click", () => irParaSlide(slideAtual + 1));
+document.getElementById("tl-exit").addEventListener("click", () => showScreen("screen-respostas"));
+document.addEventListener("keydown", (e) => {
+  if (!document.getElementById("screen-telao").classList.contains("active")) return;
+  if (e.key === "ArrowRight") irParaSlide(slideAtual + 1);
+  if (e.key === "ArrowLeft") irParaSlide(slideAtual - 1);
+  if (e.key === "Escape") showScreen("screen-respostas");
+});
+</script>
+</body>
+</html>

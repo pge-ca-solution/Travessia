@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /respostas/{respostaId} {
+
+      // Qualquer pessoa pode CRIAR uma resposta (é o formulário público),
+      // desde que os campos essenciais existam e não estejam vazios.
+      // Isso evita documentos malformados sem exigir login dos grupos.
+      allow create: if
+        request.resource.data.eixo is string &&
+        request.resource.data.eixo in ['governanca','tecnologia','processos','pessoas'] &&
+        request.resource.data.cartaId is int &&
+        request.resource.data.relator is string && request.resource.data.relator.size() > 0 &&
+        request.resource.data.situacao is string && request.resource.data.situacao.size() > 0 &&
+        request.resource.data.respostas is list &&
+        request.resource.data.projeto1 is string &&
+        request.resource.data.projeto2 is string &&
+        request.resource.data.justificativa is string;
+
+      // Ninguém pode ler, editar ou apagar sem estar autenticado
+      // (só a administração faz login no admin.html).
+      allow read: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+  }
+}
